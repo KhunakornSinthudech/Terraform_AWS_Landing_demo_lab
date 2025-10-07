@@ -12,15 +12,17 @@ permissions:
   contents: read
   pull-requests: write
 
-env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  TF_INPUT: false
-  TF_IN_AUTOMATION: true
-  TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/tf-plugin-cache
+
 
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env: # move it to under jobs
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_INPUT: false
+      TF_IN_AUTOMATION: true
+      TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/tf-plugin-cache
+  
     defaults:
       run:
         working-directory: envs/dev  
