@@ -72,7 +72,7 @@ module "rds" {
 
 module "media_converter" {
   source  = "../../modules/Media"
-  project = "oak-lab-demo-video"
+  project = "oak-lab-demo-video2"
   tags    = var.tags
  # region  = var.region 
 
