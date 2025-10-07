@@ -6,9 +6,7 @@ on:
       - 'envs/**'
       - 'modules/**'
       - '.github/workflows/oak_demo_lz_aws_ci.yml'
-    branches:
-      - '*'
-
+      
 permissions:
   id-token: write   # OIDC
   contents: read
