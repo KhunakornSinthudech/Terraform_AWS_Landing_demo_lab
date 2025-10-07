@@ -1,0 +1,71 @@
+name: terraform-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment directory under envs/ (e.g. dev)"
+        required: true
+        default: "dev"
+      confirm:
+        description: 'Type "DESTROY" to confirm'
+        required: true
+
+permissions:
+  id-token: write   # for OIDC
+  contents: read
+
+jobs:
+  destroy:
+    # safety guard: run only when user typed DESTROY
+    if: ${{ github.event.inputs.confirm == 'DESTROY' }}
+    runs-on: ubuntu-latest
+
+    # ใช้ GitHub Environments ถ้าคุณตั้ง protection/approvers ไว้ (เช่น dev/prod)
+    environment: ${{ github.event.inputs.environment }}
+
+    concurrency:
+      group: tf-destroy-${{ github.event.inputs.environment }}
+      cancel-in-progress: false
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_INPUT: false
+      TF_IN_AUTOMATION: true
+
+    defaults:
+      run:
+        working-directory: envs/${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+
+      - name: Configure AWS (OIDC AssumeRole)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions
+
+
+
+      - name: Terraform init (S3+DDB backend)
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY_PREFIX }}/terraform.tfstate" \
+            -reconfigure
+
+      - name: Terraform plan -destroy
+        run: terraform plan -destroy -no-color -lock-timeout=5m || { echo "Plan failed"; exit 1; }
+
+      - name: Terraform destroy (auto-approve)
+        run: terraform destroy -auto-approve -lock-timeout=5m
