@@ -59,7 +59,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-          role-session-name: github-actions-oak-demo2
+          role-session-name: github-actions-oak-demo1
       
 
 
@@ -79,7 +79,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan.out
+        run: terraform plan  -out=tfplan.out
 
       - name: Show plan
         run: terraform show -no-color tfplan.out > plan.txt
