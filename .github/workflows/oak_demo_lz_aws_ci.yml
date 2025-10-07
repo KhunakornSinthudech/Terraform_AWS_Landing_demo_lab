@@ -51,7 +51,7 @@ jobs:
           echo "event=$GITHUB_EVENT_NAME ref=$GITHUB_REF repo=$GITHUB_REPOSITORY"
           TOKEN=$(curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
-          echo "$TOKEN" | awk -F. '{print $2}' | base64 -d | jq .
+          echo "$TOKEN" | awk -F. '{print $2}' | base64 -d | jq . 
 
 
       - name: Configure AWS (OIDC AssumeRole)
