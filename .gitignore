@@ -1,0 +1,11 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*terraform.tfvars
+*.auto.tfvars
+*test_*
+*/.terraform/
+modules/Media/lambda/mc_submit.zip
+
+!.terraform.lock.hcl

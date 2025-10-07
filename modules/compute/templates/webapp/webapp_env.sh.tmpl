@@ -1,0 +1,85 @@
+#!/bin/bash
+
+##setup##
+
+set -euxo pipefail # e: exit on error, u: undefined var, x: echo(debug), o: pipefail (strict pipe)
+dnf update -y
+dnf install -y python3-pip jq postgresql15 awscli # install dependencies : jq: parse json, postgresql: psql client
+pip3 install flask psycopg2-binary # install python dependencies : flask: web framework, psycopg2-binary: postgres client
+
+# install ssm agent if not present
+if ! systemctl is-active --quiet amazon-ssm-agent; then
+  dnf install -y amazon-ssm-agent || true
+  systemctl enable --now amazon-ssm-agent || true
+fi
+
+# create my user to run the webapp
+if ! id -u oakwebapp-demo-user >/dev/null 2>&1; then
+  useradd --system --home-dir /opt/oaktestwebapp --shell /usr/sbin/nologin oakwebapp-demo-user
+fi
+
+
+##main##
+
+mkdir -p /opt/oaktestwebapp
+
+cat >/opt/oaktestwebapp/app.py <<'PY'
+${app_py}
+PY
+
+cat >/opt/oaktestwebapp/start_webapp.sh <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+ARN="$${MASTER_SECRET_ARN:-}"
+for i in {1..12}; do
+  if OUT=$(aws secretsmanager get-secret-value --secret-id "$ARN" --query SecretString --output text 2>/dev/null); then
+    USER=$(echo "$OUT" | jq -r .username)
+    PASS=$(echo "$OUT" | jq -r .password)
+    export DB_HOST="${db_host_override}" DB_PORT="${db_port_override}" DB_NAME="${db_name_override}" DB_USER="$USER" DB_PASS="$PASS"
+    break
+  fi
+  echo "[webapp] waiting secret... ($i/12)"; sleep 5
+done
+exec /usr/bin/python3 /opt/oaktestwebapp/app.py
+SH
+chmod +x /opt/oaktestwebapp/start_webapp.sh
+
+cat >/etc/systemd/system/webapp.service <<UNIT
+[Unit]
+Description=Demo Flask webapp (RDS master secret)
+After=network.target
+
+[Service]
+User=oakwebapp-demo-user
+WorkingDirectory=/opt/oaktestwebapp
+Environment=MASTER_SECRET_ARN=${master_secret_arn}
+ExecStart=/opt/oaktestwebapp/start_webapp.sh
+Restart=always
+StandardOutput=append:/var/log/oaktestwebapp.log
+StandardError=append:/var/log/oaktestwebapp.log
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now webapp
+
+if systemctl is-active --quiet firewalld; then
+  firewall-cmd --add-port=8080/tcp --permanent || true
+  firewall-cmd --reload || true
+fi
+
+
+
+#failed
+
+# for i in {1..12}; do
+#   if OUT=$(aws secretsmanager get-secret-value --secret-id "$ARN" --query SecretString --output text 2>/dev/null); then
+#     HOST=$(echo "$OUT" | jq -r .host); PORT=$(echo "$OUT" | jq -r .port)
+#     DB=$(echo "$OUT" | jq -r .dbname); USER=$(echo "$OUT" | jq -r .username); PASS=$(echo "$OUT" | jq -r .password)
+#     export DB_HOST="$HOST" DB_PORT="$PORT" DB_NAME="$DB" DB_USER="$USER" DB_PASS="$PASS"
+#     break
+#   fi
+#   echo "[webapp] waiting secret... ($i/12)"; sleep 5
+# done

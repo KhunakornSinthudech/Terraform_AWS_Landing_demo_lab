@@ -1,0 +1,61 @@
+from flask import Flask, request, render_template_string, jsonify
+import psycopg2, os, logging
+
+app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+
+
+DB_HOST=os.getenv("DB_HOST"); DB_PORT=int(os.getenv("DB_PORT","5432"))
+DB_NAME=os.getenv("DB_NAME","landingzonedb"); DB_USER=os.getenv("DB_USER"); DB_PASS=os.getenv("DB_PASS")
+
+TPL = """
+<html><head><title>WebApp Demo by OAK</title></head><body>
+<h2>Insert Visitor to push the name into RDS database</h2>
+<form method="POST" action="/"><input name="name" placeholder="Your name"><input type="submit" value="Add"></form>
+<hr><h2>Visitor List</h2><ul>{% for r in rows %}<li>{{r[1]}} ({{r[2]}})</li>{% endfor %}</ul>
+</body></html>
+"""
+
+def conn():
+    return psycopg2.connect(
+        host=DB_HOST, port=DB_PORT, dbname=DB_NAME,
+        user=DB_USER, password=DB_PASS,
+        sslmode="require", connect_timeout=5
+    )
+
+def ensure_schema():
+    with conn() as c:
+        with c.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS visitors (
+                  id SERIAL PRIMARY KEY,
+                  name TEXT,
+                  created_at TIMESTAMP DEFAULT now()
+                );
+            """)
+
+@app.route("/", methods=["GET","POST"])
+def index():
+    try:
+        ensure_schema()  # สร้างให้แน่ใจก่อนทุกครั้ง (idempotent)
+        if request.method == "POST":
+            name = request.form.get("name")
+            if name:
+                with conn() as c:
+                    with c.cursor() as cur:
+                        cur.execute("INSERT INTO visitors (name) VALUES (%s);", (name,))
+        with conn() as c:
+            with c.cursor() as cur:
+                cur.execute("SELECT id,name,created_at FROM visitors ORDER BY id DESC LIMIT 100;")
+                rows = cur.fetchall()
+        return render_template_string(TPL, rows=rows)
+    except Exception as e:
+        app.logger.exception("request failed")
+        return (f"Database error: {e}", 503)
+
+@app.get("/healthz")
+def health():
+    return jsonify(ok=True), 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)

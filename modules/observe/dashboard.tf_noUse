@@ -1,0 +1,75 @@
+
+# variable "instance_id"  { type = string } # ใส่ EC2 ID ที่อยากโชว์
+# variable "dashboard_name" { type = string, default = "Demo-LZ" }
+
+
+
+# resource "aws_cloudwatch_dashboard" "demo_lz" {
+#   dashboard_name = var.dashboard_name
+#   dashboard_body = jsonencode({
+#     widgets = [
+#       # CPU Used %
+#       {
+#         "type" : "metric",
+#         "x": 0, "y": 0, "width": 12, "height": 6,
+#         "properties": {
+#           "region": var.region,
+#           "title": "CPU Used (%)",
+#           "stat": "Average",
+#           "period": 60,
+#           "yAxis": { "left": { "min": 0, "max": 100 } },
+#           "metrics": [
+#             [ { "expression": "100 - AVG(m1)", "label": "CPU Used %", "id": "e1" } ],
+#             [ var.namespace, "cpu_usage_idle", "InstanceId", var.instance_id, { "id": "m1" } ]
+#           ]
+#         }
+#       },
+#       # Memory Used %
+#       {
+#         "type" : "metric",
+#         "x": 12, "y": 0, "width": 12, "height": 6,
+#         "properties": {
+#           "region": var.region,
+#           "title": "Memory Used (%)",
+#           "stat": "Average",
+#           "period": 60,
+#           "yAxis": { "left": { "min": 0, "max": 100 } },
+#           "metrics": [
+#             [ var.namespace, "mem_used_percent", "InstanceId", var.instance_id ]
+#           ]
+#         }
+#       },
+#       # Disk Used % (path “/”)
+#       {
+#         "type" : "metric",
+#         "x": 0, "y": 6, "width": 12, "height": 6,
+#         "properties": {
+#           "region": var.region,
+#           "title": "Disk Used (%) - /",
+#           "stat": "Average",
+#           "period": 60,
+#           "yAxis": { "left": { "min": 0, "max": 100 } },
+#           "metrics": [
+#             [ var.namespace, "disk_used_percent", "InstanceId", var.instance_id, "path", "/" ]
+#           ]
+#         }
+#       },
+#       # Composite: CPU user/system (optional สวยๆ)
+#       {
+#         "type" : "metric",
+#         "x": 12, "y": 6, "width": 12, "height": 6,
+#         "properties": {
+#           "region": var.region,
+#           "title": "CPU user/system (%)",
+#           "stat": "Average",
+#           "period": 60,
+#           "yAxis": { "left": { "min": 0, "max": 100 } },
+#           "metrics": [
+#             [ var.namespace, "cpu_usage_user",   "InstanceId", var.instance_id ],
+#             [ var.namespace, "cpu_usage_system", "InstanceId", var.instance_id ]
+#           ]
+#         }
+#       }
+#     ]
+#   })
+# }
