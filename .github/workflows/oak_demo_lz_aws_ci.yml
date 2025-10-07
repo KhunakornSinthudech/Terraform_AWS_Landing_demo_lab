@@ -27,7 +27,7 @@ jobs:
       id-token: write     # ต้องมีตรงนี้
       contents: read
       pull-requests: write
-      
+
     defaults:
       run:
         working-directory: envs/dev  
@@ -46,16 +46,13 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      - name: Show OIDC token claims
-        env:
-          REQ_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          REQ_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
+      - name: Show OIDC claims
         run: |
-          set -e
           echo "event=$GITHUB_EVENT_NAME ref=$GITHUB_REF repo=$GITHUB_REPOSITORY"
-          TOKEN=$(curl -sSf -H "Authorization: Bearer $REQ_TOKEN" \
-            "${REQ_URL}&audience=sts.amazonaws.com" | jq -r '.value')
-          echo "$TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq .
+          TOKEN=$(curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          echo "$TOKEN" | awk -F. '{print $2}' | base64 -d | jq .
+
 
       - name: Configure AWS (OIDC AssumeRole)
         uses: aws-actions/configure-aws-credentials@v4
