@@ -6,8 +6,7 @@ on:
       - 'envs/**'
       - 'modules/**'
       - '.github/workflows/oak_demo_lz_aws_ci.yml'
-    branches:
-      - '*'
+      
 
 permissions:
   id-token: write   # OIDC
@@ -19,11 +18,16 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    env: # move it to under jobs
+    env: 
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_INPUT: false
       TF_IN_AUTOMATION: true
-  
+
+    permissions:
+      id-token: write     # ต้องมีตรงนี้
+      contents: read
+      pull-requests: write
+
     defaults:
       run:
         working-directory: envs/dev  
@@ -42,11 +46,22 @@ jobs:
         with:
           terraform_version: 1.9.5
 
+      - name: Show OIDC claims
+        run: |
+          echo "event=$GITHUB_EVENT_NAME ref=$GITHUB_REF repo=$GITHUB_REPOSITORY"
+          TOKEN=$(curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          echo "$TOKEN" | awk -F. '{print $2}' | base64 -d | jq . 
+
       - name: Configure AWS (OIDC AssumeRole)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.AWS_ROLE_NAME }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+          role-session-name: github-actions-oak-demo1
+      
+
 
       - name: Terraform init (S3+DDB backend)
         run: |
@@ -64,7 +79,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan.out
+        run: terraform plan  -out=tfplan.out
 
       - name: Show plan
         run: terraform show -no-color tfplan.out > plan.txt
