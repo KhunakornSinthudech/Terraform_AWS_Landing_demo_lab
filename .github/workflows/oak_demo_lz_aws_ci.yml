@@ -54,7 +54,7 @@ jobs:
           echo "$TOKEN" | awk -F. '{print $2}' | base64 -d | jq . 
 
       - name: Configure AWS (OIDC AssumeRole)
-        uses: aws-actions/configure-aws-credentials@main
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
