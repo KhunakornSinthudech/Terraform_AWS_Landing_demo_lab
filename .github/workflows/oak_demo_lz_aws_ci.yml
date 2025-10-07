@@ -18,7 +18,7 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    env: # move it to under jobs
+    env: 
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_INPUT: false
       TF_IN_AUTOMATION: true
@@ -44,7 +44,7 @@ jobs:
       - name: Configure AWS (OIDC AssumeRole)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.AWS_ROLE_NAME }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform init (S3+DDB backend)
