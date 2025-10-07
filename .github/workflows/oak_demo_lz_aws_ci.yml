@@ -6,6 +6,8 @@ on:
       - 'envs/**'
       - 'modules/**'
       - '.github/workflows/oak_demo_lz_aws_ci.yml'
+    branches:
+      - '*'
 
 permissions:
   id-token: write   # OIDC
@@ -21,7 +23,6 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_INPUT: false
       TF_IN_AUTOMATION: true
-      TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/tf-plugin-cache
   
     defaults:
       run:
@@ -33,7 +34,7 @@ jobs:
       - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
-          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          path: ${{ runner.temp }}/tf-plugin-cache
           key: tf-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
 
       - name: Setup Terraform
