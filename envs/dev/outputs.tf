@@ -21,5 +21,5 @@ output "output_bucket_name" {
 
 output "lambda_function_name" {
   description = "Name of the Lambda function that submits MediaConvert jobs."
-  value       = module.media_converter.lambda_function_name 
+  value       = module.media_converter.lambda_function_name
 }
