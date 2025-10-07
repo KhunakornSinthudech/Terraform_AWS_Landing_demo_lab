@@ -41,12 +41,6 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      - name: Configure AWS (OIDC AssumeRole)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          
       - name: Show OIDC token claims
         env:
           REQ_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
@@ -57,6 +51,14 @@ jobs:
           TOKEN=$(curl -sSf -H "Authorization: Bearer $REQ_TOKEN" \
             "${REQ_URL}&audience=sts.amazonaws.com" | jq -r '.value')
           echo "$TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq .
+
+      - name: Configure AWS (OIDC AssumeRole)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      
 
 
       - name: Terraform init (S3+DDB backend)
