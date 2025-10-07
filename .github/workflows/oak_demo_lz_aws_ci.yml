@@ -22,7 +22,12 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_INPUT: false
       TF_IN_AUTOMATION: true
-  
+
+    permissions:
+      id-token: write     # ต้องมีตรงนี้
+      contents: read
+      pull-requests: write
+      
     defaults:
       run:
         working-directory: envs/dev  
