@@ -21,7 +21,6 @@ jobs:
     if: ${{ github.event.inputs.confirm == 'DESTROY' }}
     runs-on: ubuntu-latest
 
-    # ใช้ GitHub Environments ถ้าคุณตั้ง protection/approvers ไว้ (เช่น dev/prod)
     environment: ${{ github.event.inputs.environment }}
 
     concurrency:

@@ -65,7 +65,7 @@ resource "aws_eip" "nat" {
   domain   = "vpc"
   tags     = merge(var.tags, { Name = "eip-nat-${each.key}" })
 }
-
+#condition if create nat gateway or not
 resource "aws_nat_gateway" "nat" {
   for_each      = { for k, v in var.public_subnets : k => v if try(v.create_nat_gateway, false) }
   allocation_id = aws_eip.nat[each.key].id
@@ -74,6 +74,7 @@ resource "aws_nat_gateway" "nat" {
   depends_on    = [aws_internet_gateway.igw]
 }
 
+#condition if create nat gateway or not
 resource "aws_route" "private_default_via_nat" {
   for_each               = { for k, v in var.private_subnets : k => v if try(var.public_subnets[k].create_nat_gateway, false) }
   route_table_id         = aws_route_table.private[each.key].id

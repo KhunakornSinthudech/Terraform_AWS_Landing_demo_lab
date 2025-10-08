@@ -85,7 +85,7 @@ module "media_converter" {
   output_prefix        = "outputs/" # results will be written here
   queue_name           = null       // set to someting to not use default name
   create_queue         = false      // create new queue 
-  existing_queue_arn   = "pending"  // provide existing queue ARN here if "create_queue=false"
+  existing_queue_arn   = "placeholder"  // provide existing queue ARN here if "create_queue=false"
 }
 
 

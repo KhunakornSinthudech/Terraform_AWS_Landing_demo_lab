@@ -73,7 +73,7 @@ resource "aws_instance" "this" {
   ) : templatefile("${path.module}/templates/ssmagent_only.sh.tmpl", {})
   
   root_block_device {
-    volume_size = 3 #2gb got error on install cw agent 
+    volume_size = 5 #2gb got error on install cw agent 
     volume_type = "gp3"
     delete_on_termination = true
   }
