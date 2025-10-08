@@ -2,7 +2,7 @@ resource "aws_vpc" "oaklab" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(var.tags, { Name = "vpc-${var.region}-oaklab" })
+  tags                 = merge(var.tags, { Name = "vpc-${var.region}-oaklab" })
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -16,7 +16,7 @@ resource "aws_subnet" "public" {
   cidr_block              = each.value.cidr_block
   availability_zone       = each.value.availability_zone
   map_public_ip_on_launch = true
-  tags = merge(var.tags, { Name = "subnet-public-${each.key}" })
+  tags                    = merge(var.tags, { Name = "subnet-public-${each.key}" })
 }
 
 resource "aws_route_table" "public" {
@@ -44,7 +44,7 @@ resource "aws_subnet" "private" {
   cidr_block              = each.value.cidr_block
   availability_zone       = each.value.availability_zone
   map_public_ip_on_launch = false
-  tags = merge(var.tags, { Name = "subnet-private-${each.key}" })
+  tags                    = merge(var.tags, { Name = "subnet-private-${each.key}" })
 }
 
 resource "aws_route_table" "private" {
@@ -65,7 +65,7 @@ resource "aws_eip" "nat" {
   domain   = "vpc"
   tags     = merge(var.tags, { Name = "eip-nat-${each.key}" })
 }
-
+#condition if create nat gateway or not
 resource "aws_nat_gateway" "nat" {
   for_each      = { for k, v in var.public_subnets : k => v if try(v.create_nat_gateway, false) }
   allocation_id = aws_eip.nat[each.key].id
@@ -74,6 +74,7 @@ resource "aws_nat_gateway" "nat" {
   depends_on    = [aws_internet_gateway.igw]
 }
 
+#condition if create nat gateway or not
 resource "aws_route" "private_default_via_nat" {
   for_each               = { for k, v in var.private_subnets : k => v if try(var.public_subnets[k].create_nat_gateway, false) }
   route_table_id         = aws_route_table.private[each.key].id

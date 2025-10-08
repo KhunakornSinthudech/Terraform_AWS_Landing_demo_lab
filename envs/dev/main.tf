@@ -78,14 +78,14 @@ module "media_converter" {
 
   # Buckets: create new (default true). To reuse existing, set create_buckets=false and provide names.
   create_buckets       = true
-  bucket_force_destroy = true       // allow destroy non-empty for Oak lab demo only
-  input_bucket_name    = null       // set to someting to not use default name
-  output_bucket_name   = null       // set to someting to not use default name
-  input_prefix         = "input/"   # upload files here to trigger convert
-  output_prefix        = "outputs/" # results will be written here
-  queue_name           = null       // set to someting to not use default name
-  create_queue         = false      // create new queue 
-  existing_queue_arn   = "pending"  // provide existing queue ARN here if "create_queue=false"
+  bucket_force_destroy = true          // allow destroy non-empty for Oak lab demo only
+  input_bucket_name    = null          // set to someting to not use default name
+  output_bucket_name   = null          // set to someting to not use default name
+  input_prefix         = "input/"      # upload files here to trigger convert
+  output_prefix        = "outputs/"    # results will be written here
+  queue_name           = null          // set to someting to not use default name
+  create_queue         = false         // create new queue 
+  existing_queue_arn   = "placeholder" // provide existing queue ARN here if "create_queue=false"
 }
 
 

@@ -10,3 +10,10 @@ aws mediaconvert describe-endpoints --max-results 1 --region ap-southeast-1
 # config backend
 terraform init -backend-config='backend.hcl'  -migrate-state
 terraform init -backend-config='backend.hcl' -reconfigure
+
+# fmt diff fix if edit on local
+
+terraform fmt -recursive
+git add -A
+git commit -m "fmt: canonical spacing"
+

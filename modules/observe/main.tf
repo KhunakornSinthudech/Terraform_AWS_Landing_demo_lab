@@ -3,15 +3,15 @@ locals {
   default_config = {
     agent = { metrics_collection_interval = 60 } //every minutes
     metrics = {
-      namespace         = var.namespace //namespace for lab
+      namespace = var.namespace //namespace for lab
       append_dimensions = {
-        "InstanceId"   : "$${aws:InstanceId}"
+        "InstanceId" : "$${aws:InstanceId}"
         "InstanceType" : "$${aws:InstanceType}"
       }
       metrics_collected = {
-        cpu  = { resources=["*"], totalcpu=true, measurement=["cpu_usage_idle","cpu_usage_user","cpu_usage_system"] }
-        mem  = { measurement=["mem_used_percent"] }
-        disk = { resources=["/"], measurement=["used_percent"] }
+        cpu  = { resources = ["*"], totalcpu = true, measurement = ["cpu_usage_idle", "cpu_usage_user", "cpu_usage_system"] }
+        mem  = { measurement = ["mem_used_percent"] }
+        disk = { resources = ["/"], measurement = ["used_percent"] }
       }
     }
     logs = {
@@ -19,16 +19,16 @@ locals {
         files = {
           collect_list = [
             {
-              file_path = "/var/log/messages"
-              log_group_name = var.log_group_name
+              file_path       = "/var/log/messages"
+              log_group_name  = var.log_group_name
               log_stream_name = "{instance_id}"
-              timezone = "UTC"
+              timezone        = "UTC"
             },
             {
-              file_path = "/var/log/oaktestwebapp.log"
-              log_group_name = var.log_group_name
+              file_path       = "/var/log/oaktestwebapp.log"
+              log_group_name  = var.log_group_name
               log_stream_name = "{instance_id}-webapp"
-              timezone = "UTC"
+              timezone        = "UTC"
             }
           ]
         }
@@ -36,9 +36,9 @@ locals {
     }
   }
 
-  config_payload = var.config_override_json != "" ? var.config_override_json : jsonencode(local.default_config) //override with user JSON if provided
-  kms_opt        = var.kms_key_id != "" ? var.kms_key_id : null
-  ssm_parameter_name = "/AmazonCloudWatch/linux" 
+  config_payload     = var.config_override_json != "" ? var.config_override_json : jsonencode(local.default_config) //override with user JSON if provided
+  kms_opt            = var.kms_key_id != "" ? var.kms_key_id : null
+  ssm_parameter_name = "/AmazonCloudWatch/linux"
 }
 
 
@@ -67,81 +67,89 @@ resource "aws_ssm_parameter" "cw_config" {
 
 
 #All-in-one: CW install config restart
-    // failfast with euo pipefail
-    // check if ec2 is RPM based 
-    // yum cloudwatch-agent if not installed
-    // else check if DPKG based
-    // apt-get cloudwatch-agent if not installed
-    // then fetch config from SSM and start the agent
+// failfast with euo pipefail
+// check if ec2 is RPM based 
+// yum cloudwatch-agent if not installed
+// else check if DPKG based
+// apt-get cloudwatch-agent if not installed
+// then fetch config from SSM and start the agent
 resource "aws_ssm_association" "cwagent_all_in_one" {
   name = "AWS-RunShellScript"
 
   targets {
-        key    = var.target_key
-        values = var.target_values
+    key    = var.target_key
+    values = var.target_values
   }
 
   parameters = {
-    commands = <<-EOT
-      #!/bin/bash
-      set -euo pipefail 
-      if command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y amazon-cloudwatch-agent || true
-        sudo dnf install -y rsyslog && sudo systemctl enable --now rsyslog
-      elif command -v yum >/dev/null 2>&1; then
-        sudo yum install -y amazon-cloudwatch-agent || true
-        sudo yum install -y rsyslog && sudo systemctl enable --now rsyslog
-      elif command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update && sudo apt-get install -y amazon-cloudwatch-agent || true
-        sudo apt-get install -y rsyslog && sudo systemctl enable --now rsyslog
-      fi
-
-      /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:${aws_ssm_parameter.cw_config[0].name} -s 
-      sudo systemctl enable --now amazon-cloudwatch-agent     
-    EOT
+    # ต้องเป็น string ไม่ใช่ list; ใช้ replace() กัน CRLF จาก Windows
+    commands = replace(
+      trimspace(<<-EOT
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if command -v dnf >/dev/null 2>&1; then
+          sudo dnf install -y amazon-cloudwatch-agent rsyslog || true
+          sudo systemctl enable --now rsyslog || true
+        elif command -v yum >/dev/null 2>&1; then
+          sudo yum install -y amazon-cloudwatch-agent rsyslog || true
+          sudo systemctl enable --now rsyslog || true
+        elif command -v apt-get >/dev/null 2>&1; then
+          sudo apt-get update
+          sudo apt-get install -y amazon-cloudwatch-agent rsyslog || true
+          sudo systemctl enable --now rsyslog || true
+        fi
+        /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+          -a fetch-config -m ec2 -c ssm:${aws_ssm_parameter.cw_config[0].name} -s
+        sudo systemctl enable --now amazon-cloudwatch-agent || true
+      EOT
+      ),
+      "\r\n", "\n"
+    )
   }
-  
+
   apply_only_at_cron_interval = false
   compliance_severity         = "LOW"
 }
 
 
 
+
+
 # these broken as racing between install and configure; use all-in-one above
 
-# # Install CloudWatch Agent via SSM Distributor
-# resource "aws_ssm_association" "install_cwagent" {
-#   count = var.enabled ? 1 : 0
-#   name  = "AWS-ConfigureAWSPackage"
-#   parameters = {
-#     action = "Install"
-#     name   = "AmazonCloudWatchAgent"
-#   }
-#   targets {
-#     key    = var.target_key
-#     values = var.target_values
-#   }
-#   apply_only_at_cron_interval = false
-# }
+# Install CloudWatch Agent via SSM Distributor
+resource "aws_ssm_association" "install_cwagent" {
+  count = var.enabled ? 1 : 0
+  name  = "AWS-ConfigureAWSPackage"
+  parameters = {
+    action = "Install"
+    name   = "AmazonCloudWatchAgent"
+  }
+  targets {
+    key    = var.target_key
+    values = var.target_values
+  }
+  apply_only_at_cron_interval = false
+}
 
-# # Configure + start CloudWatch Agent using the SSM parameter
-# resource "aws_ssm_association" "configure_cwagent" {
-#   count = var.enabled ? 1 : 0
-#   name  = "AmazonCloudWatch-ManageAgent"
-#   parameters = {
-#     action                        = "configure"
-#     mode                          = "ec2"
-#     optionalConfigurationSource   = "ssm"
-#     optionalConfigurationLocation = aws_ssm_parameter.cw_config[0].name
-#     optionalRestart               = "yes"
-#   }
-#   targets {
-#     key    = var.target_key
-#     values = var.target_values
-#   }
-#   depends_on = [
-#     aws_ssm_association.install_cwagent,
-#     aws_cloudwatch_log_group.system,
-#     aws_iam_role_policy_attachment.cw_agent
-#   ]
-# }
+# Configure + start CloudWatch Agent using the SSM parameter
+resource "aws_ssm_association" "configure_cwagent" {
+  count = var.enabled ? 1 : 0
+  name  = "AmazonCloudWatch-ManageAgent"
+  parameters = {
+    action                        = "configure"
+    mode                          = "ec2"
+    optionalConfigurationSource   = "ssm"
+    optionalConfigurationLocation = aws_ssm_parameter.cw_config[0].name
+    optionalRestart               = "yes"
+  }
+  targets {
+    key    = var.target_key
+    values = var.target_values
+  }
+  depends_on = [
+    aws_ssm_association.install_cwagent,
+    aws_cloudwatch_log_group.system,
+    aws_iam_role_policy_attachment.cw_agent
+  ]
+}
