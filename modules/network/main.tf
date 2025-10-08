@@ -2,7 +2,7 @@ resource "aws_vpc" "oaklab" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = merge(var.tags, { Name = "vpc-${var.region}-oaklab" })
+  tags                 = merge(var.tags, { Name = "vpc-${var.region}-oaklab" })
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -16,7 +16,7 @@ resource "aws_subnet" "public" {
   cidr_block              = each.value.cidr_block
   availability_zone       = each.value.availability_zone
   map_public_ip_on_launch = true
-  tags = merge(var.tags, { Name = "subnet-public-${each.key}" })
+  tags                    = merge(var.tags, { Name = "subnet-public-${each.key}" })
 }
 
 resource "aws_route_table" "public" {
@@ -44,7 +44,7 @@ resource "aws_subnet" "private" {
   cidr_block              = each.value.cidr_block
   availability_zone       = each.value.availability_zone
   map_public_ip_on_launch = false
-  tags = merge(var.tags, { Name = "subnet-private-${each.key}" })
+  tags                    = merge(var.tags, { Name = "subnet-private-${each.key}" })
 }
 
 resource "aws_route_table" "private" {

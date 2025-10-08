@@ -35,7 +35,7 @@ resource "aws_iam_policy" "sm_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "attach_sm" {
-  count     = local.any_enable_webapp ? 1 : 0
-  role      = aws_iam_role.ssm_ec2.name
-  policy_arn= aws_iam_policy.sm_access[0].arn
+  count      = local.any_enable_webapp ? 1 : 0
+  role       = aws_iam_role.ssm_ec2.name
+  policy_arn = aws_iam_policy.sm_access[0].arn
 }

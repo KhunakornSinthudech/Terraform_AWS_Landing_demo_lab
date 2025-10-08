@@ -12,7 +12,7 @@ variable "instances" {
     multi_az                = bool
     backup_retention_period = number
     publicly_accessible     = bool
-    subnet_keys         =  list(string)         # ["private/a","public/b"] 
+    subnet_keys             = list(string) # ["private/a","public/b"] 
   }))
 }
 variable "allowed_cidrs" {
@@ -30,7 +30,7 @@ variable "subnet_id_map" {
 }
 
 # รับ map ของ subnet id จากโมดูล network
-variable "public_subnet_ids_by_key"  { type = map(string) }
+variable "public_subnet_ids_by_key" { type = map(string) }
 variable "private_subnet_ids_by_key" { type = map(string) }
 
 variable "pg_version" {

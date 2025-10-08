@@ -51,10 +51,10 @@ data "aws_iam_policy_document" "bucket_policy" {
       aws_s3_bucket.state.arn,
       "${aws_s3_bucket.state.arn}/*"
     ]
-    principals { 
-        type = "*" 
-        identifiers = ["*"] 
-        }
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
     condition {
       test     = "Bool"
       variable = "aws:SecureTransport"
@@ -73,10 +73,10 @@ resource "aws_dynamodb_table" "lock" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 
-  attribute { 
+  attribute {
     name = "LockID"
-    type = "S" 
-   }
+    type = "S"
+  }
 
   point_in_time_recovery { enabled = true }
 

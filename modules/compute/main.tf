@@ -10,13 +10,13 @@ data "aws_ami" "al2023" {
 
 # IAM role for SSM
 resource "aws_iam_role" "ssm_ec2" {
-  name               = "ssm-ec2-role"
+  name = "ssm-ec2-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "ec2.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -41,7 +41,7 @@ data "template_file" "webapp_py" {
 
 # multi instances
 resource "aws_instance" "this" {
-  
+
   # validate input: if enable_webapp=true, master_secret_arn must be non-null
   # bug fix for iam-secrets.tf precondition not working with try() that returns null
   lifecycle {
@@ -52,15 +52,15 @@ resource "aws_instance" "this" {
   }
 
 
-  for_each = var.instances
+  for_each      = var.instances
   ami           = data.aws_ami.al2023.id
   instance_type = try(each.value.instance_type, "t3.micro")
-  subnet_id = var.subnet_id_map[try(each.value.subnet_key, "")]
+  subnet_id     = var.subnet_id_map[try(each.value.subnet_key, "")]
 
-  vpc_security_group_ids = length(each.value.security_group_ids) > 0 ? each.value.security_group_ids : [var.default_security_group_id]
+  vpc_security_group_ids      = length(each.value.security_group_ids) > 0 ? each.value.security_group_ids : [var.default_security_group_id]
   iam_instance_profile        = aws_iam_instance_profile.ssm.name
   associate_public_ip_address = try(each.value.associate_public_ip, true)
-  tags = merge(var.tags, { Name = each.value.name })
+  tags                        = merge(var.tags, { Name = each.value.name })
   //webapp template application
   user_data = try(each.value.enable_webapp, false) ? templatefile("${path.module}/templates/webapp/webapp_env.sh.tmpl",
     {
@@ -71,16 +71,16 @@ resource "aws_instance" "this" {
       app_py            = data.template_file.webapp_py.rendered
     }
   ) : templatefile("${path.module}/templates/ssmagent_only.sh.tmpl", {})
-  
+
   root_block_device {
-    volume_size = 5 #2gb got error on install cw agent 
-    volume_type = "gp3"
+    volume_size           = 5 #2gb got error on install cw agent 
+    volume_type           = "gp3"
     delete_on_termination = true
   }
 
   # ให้แนบ policy เสร็จก่อน ค่อยสร้าง EC2 (กัน race ตอนดึง secret)
   user_data_replace_on_change = true
-  depends_on = [aws_iam_role_policy_attachment.attach_sm]
+  depends_on                  = [aws_iam_role_policy_attachment.attach_sm]
 }
 
 ### legacy single instance (commented out) ###

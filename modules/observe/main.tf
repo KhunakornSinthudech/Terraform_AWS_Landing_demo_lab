@@ -3,15 +3,15 @@ locals {
   default_config = {
     agent = { metrics_collection_interval = 60 } //every minutes
     metrics = {
-      namespace         = var.namespace //namespace for lab
+      namespace = var.namespace //namespace for lab
       append_dimensions = {
-        "InstanceId"   : "$${aws:InstanceId}"
+        "InstanceId" : "$${aws:InstanceId}"
         "InstanceType" : "$${aws:InstanceType}"
       }
       metrics_collected = {
-        cpu  = { resources=["*"], totalcpu=true, measurement=["cpu_usage_idle","cpu_usage_user","cpu_usage_system"] }
-        mem  = { measurement=["mem_used_percent"] }
-        disk = { resources=["/"], measurement=["used_percent"]  }
+        cpu  = { resources = ["*"], totalcpu = true, measurement = ["cpu_usage_idle", "cpu_usage_user", "cpu_usage_system"] }
+        mem  = { measurement = ["mem_used_percent"] }
+        disk = { resources = ["/"], measurement = ["used_percent"] }
       }
     }
     logs = {
@@ -19,16 +19,16 @@ locals {
         files = {
           collect_list = [
             {
-              file_path = "/var/log/messages"
-              log_group_name = var.log_group_name
+              file_path       = "/var/log/messages"
+              log_group_name  = var.log_group_name
               log_stream_name = "{instance_id}"
-              timezone = "UTC"
+              timezone        = "UTC"
             },
             {
-              file_path = "/var/log/oaktestwebapp.log"
-              log_group_name = var.log_group_name
+              file_path       = "/var/log/oaktestwebapp.log"
+              log_group_name  = var.log_group_name
               log_stream_name = "{instance_id}-webapp"
-              timezone = "UTC"
+              timezone        = "UTC"
             }
           ]
         }
@@ -36,9 +36,9 @@ locals {
     }
   }
 
-  config_payload = var.config_override_json != "" ? var.config_override_json : jsonencode(local.default_config) //override with user JSON if provided
-  kms_opt        = var.kms_key_id != "" ? var.kms_key_id : null
-  ssm_parameter_name = "/AmazonCloudWatch/linux" 
+  config_payload     = var.config_override_json != "" ? var.config_override_json : jsonencode(local.default_config) //override with user JSON if provided
+  kms_opt            = var.kms_key_id != "" ? var.kms_key_id : null
+  ssm_parameter_name = "/AmazonCloudWatch/linux"
 }
 
 
@@ -67,12 +67,12 @@ resource "aws_ssm_parameter" "cw_config" {
 
 
 #All-in-one: CW install config restart
-    // failfast with euo pipefail
-    // check if ec2 is RPM based 
-    // yum cloudwatch-agent if not installed
-    // else check if DPKG based
-    // apt-get cloudwatch-agent if not installed
-    // then fetch config from SSM and start the agent
+// failfast with euo pipefail
+// check if ec2 is RPM based 
+// yum cloudwatch-agent if not installed
+// else check if DPKG based
+// apt-get cloudwatch-agent if not installed
+// then fetch config from SSM and start the agent
 resource "aws_ssm_association" "cwagent_all_in_one" {
   name = "AWS-RunShellScript"
 

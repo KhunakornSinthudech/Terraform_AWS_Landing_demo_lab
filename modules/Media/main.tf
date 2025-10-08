@@ -8,16 +8,16 @@ locals {
 
 # S3 buckets (create or use existing)
 resource "aws_s3_bucket" "input" {
-  count  = var.create_buckets ? 1 : 0
-  bucket = var.input_bucket_name != null ? var.input_bucket_name : local.default_input_bucket_name
+  count         = var.create_buckets ? 1 : 0
+  bucket        = var.input_bucket_name != null ? var.input_bucket_name : local.default_input_bucket_name
   force_destroy = var.bucket_force_destroy
-  tags = merge(var.tags, { Name = "${var.project}-mc-input" })
+  tags          = merge(var.tags, { Name = "${var.project}-mc-input" })
 }
 resource "aws_s3_bucket" "output" {
-  count  = var.create_buckets ? 1 : 0
-  bucket = var.output_bucket_name != null ? var.output_bucket_name : local.default_output_bucket_name
+  count         = var.create_buckets ? 1 : 0
+  bucket        = var.output_bucket_name != null ? var.output_bucket_name : local.default_output_bucket_name
   force_destroy = var.bucket_force_destroy
-  tags = merge(var.tags, { Name = "${var.project}-mc-output" })
+  tags          = merge(var.tags, { Name = "${var.project}-mc-output" })
 }
 
 # When using existing buckets, lookup by name
@@ -34,9 +34,9 @@ data "aws_s3_bucket" "output" {
 # Normalized bucket IDs/ARNs
 # it will auto select from created or existing based on var.create_buckets check by [0] index (lazy check)
 locals {
-  input_bucket_id  = var.create_buckets ? aws_s3_bucket.input[0].id  : data.aws_s3_bucket.input[0].id
-  input_bucket_arn = var.create_buckets ? aws_s3_bucket.input[0].arn : data.aws_s3_bucket.input[0].arn
-  output_bucket_id  = var.create_buckets ? aws_s3_bucket.output[0].id  : data.aws_s3_bucket.output[0].id
+  input_bucket_id   = var.create_buckets ? aws_s3_bucket.input[0].id : data.aws_s3_bucket.input[0].id
+  input_bucket_arn  = var.create_buckets ? aws_s3_bucket.input[0].arn : data.aws_s3_bucket.input[0].arn
+  output_bucket_id  = var.create_buckets ? aws_s3_bucket.output[0].id : data.aws_s3_bucket.output[0].id
   output_bucket_arn = var.create_buckets ? aws_s3_bucket.output[0].arn : data.aws_s3_bucket.output[0].arn
 }
 
@@ -76,15 +76,15 @@ data "aws_iam_policy_document" "mc_access" {
   }
   statement {
     sid     = "WriteOutput"
-    actions = ["s3:PutObject","s3:PutObjectAcl","s3:ListBucket"]
+    actions = ["s3:PutObject", "s3:PutObjectAcl", "s3:ListBucket"]
     resources = [
       local.output_bucket_arn,
       "${local.output_bucket_arn}/*"
     ]
   }
   statement {
-    sid     = "Logs"
-    actions = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"]
+    sid       = "Logs"
+    actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["*"]
   }
 }
@@ -105,10 +105,10 @@ resource "aws_iam_role_policy_attachment" "mc_attach" {
 data "aws_iam_policy_document" "lambda_trust" {
   statement {
     actions = ["sts:AssumeRole"] // allow lambda to assume this role
-    principals { 
-      type = "Service" 
-      identifiers = ["lambda.amazonaws.com"] 
-      }
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
   }
 }
 resource "aws_iam_role" "lambda_role" {
@@ -120,13 +120,13 @@ resource "aws_iam_role" "lambda_role" {
 # Lambda permissions: CreateJob, DescribeEndpoints, GetJob + PassRole to MediaConvert service role
 data "aws_iam_policy_document" "lambda_policy" {
   statement {
-    sid     = "MediaConvertControl"
-    actions = ["mediaconvert:CreateJob","mediaconvert:DescribeEndpoints","mediaconvert:GetJob"]
+    sid       = "MediaConvertControl"
+    actions   = ["mediaconvert:CreateJob", "mediaconvert:DescribeEndpoints", "mediaconvert:GetJob"]
     resources = ["*"]
   }
   statement {
-    sid     = "PassMediaConvertRole"
-    actions = ["iam:PassRole"]
+    sid       = "PassMediaConvertRole"
+    actions   = ["iam:PassRole"]
     resources = [aws_iam_role.mc_service_role.arn]
     condition {
       test     = "StringEquals"
@@ -136,15 +136,15 @@ data "aws_iam_policy_document" "lambda_policy" {
   }
   statement {
     sid     = "ReadInputBucket"
-    actions = ["s3:GetObject","s3:ListBucket"]
+    actions = ["s3:GetObject", "s3:ListBucket"]
     resources = [
       local.input_bucket_arn,
       "${local.input_bucket_arn}/*"
     ]
   }
   statement {
-    sid     = "LambdaLogs"
-    actions = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"]
+    sid       = "LambdaLogs"
+    actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["*"]
   }
 }
@@ -163,9 +163,9 @@ resource "aws_iam_role_policy_attachment" "lambda_attach" {
 ##### test
 # MediaConvert queue (create or use existing)
 resource "aws_media_convert_queue" "main" {
-  count       = var.create_queue ? 1 : 0
-  name        = coalesce(var.queue_name, "${var.project}-mc-queue")
-  description = "MediaConvert queue for ${var.project}"
+  count        = var.create_queue ? 1 : 0
+  name         = coalesce(var.queue_name, "${var.project}-mc-queue")
+  description  = "MediaConvert queue for ${var.project}"
   pricing_plan = "ON_DEMAND"
   #depends_on = [null_resource.mediaconvert_subscribe]
   tags = var.tags

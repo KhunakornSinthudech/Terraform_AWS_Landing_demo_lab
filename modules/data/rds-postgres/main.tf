@@ -31,29 +31,29 @@ resource "aws_security_group_rule" "ingress_app" {
   description              = "Allow Postgres from app SG"
 }
 
-  # Create a rule for each allowed_cidr per instance
+# Create a rule for each allowed_cidr per instance
 resource "aws_security_group_rule" "ingress_cidr" {
   for_each = {
     for pair in flatten([
       for inst_key, inst in var.instances : [
         for cidr in var.allowed_cidrs : {
-          key = "${inst_key}-${cidr}"
+          key          = "${inst_key}-${cidr}"
           instance_key = inst_key
           cidr         = cidr
         }
       ]
-    ]) : pair.key => {
+      ]) : pair.key => {
       instance_key = pair.instance_key
       cidr         = pair.cidr
     }
   }
-  type             = "ingress"
-  security_group_id= aws_security_group.db[each.value.instance_key].id
-  from_port        = 5432
-  to_port          = 5432
-  protocol         = "tcp"
-  cidr_blocks      = [each.value.cidr]
-  description      = "TEMP: allow from CIDR for testing"
+  type              = "ingress"
+  security_group_id = aws_security_group.db[each.value.instance_key].id
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  cidr_blocks       = [each.value.cidr]
+  description       = "TEMP: allow from CIDR for testing"
 }
 
 resource "aws_security_group_rule" "egress_all" {
@@ -71,31 +71,31 @@ resource "aws_security_group_rule" "egress_all" {
 
 resource "aws_db_parameter_group" "pg" {
   for_each = var.instances
-  name   = "${each.value.db_identifier}-params-v${var.pg_version}"
-  family = local.families[each.key]
-  tags   = merge(var.tags, { Name = "${each.value.db_identifier}-params" })
+  name     = "${each.value.db_identifier}-params-v${var.pg_version}"
+  family   = local.families[each.key]
+  tags     = merge(var.tags, { Name = "${each.value.db_identifier}-params" })
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
     apply_method = "pending-reboot"
   }
   parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
     apply_method = "pending-reboot"
   }
   parameter {
-    name  = "log_min_duration_statement"
-    value = "1000"
+    name         = "log_min_duration_statement"
+    value        = "1000"
     apply_method = "immediate"
   }
 }
 
 resource "aws_db_instance" "pg" {
-  for_each                = var.instances
-  identifier              = each.value.db_identifier
-  db_name                 = each.value.db_name
-  username                = each.value.db_username
+  for_each   = var.instances
+  identifier = each.value.db_identifier
+  db_name    = each.value.db_name
+  username   = each.value.db_username
 
   engine                  = "postgres"
   engine_version          = each.value.engine_version
@@ -104,22 +104,22 @@ resource "aws_db_instance" "pg" {
   multi_az                = each.value.multi_az
   backup_retention_period = each.value.backup_retention_period
 
-  db_subnet_group_name    = aws_db_subnet_group.this[each.key].name
-  vpc_security_group_ids  = [aws_security_group.db[each.key].id]
-  publicly_accessible     = each.value.publicly_accessible
-  deletion_protection     = false
-  skip_final_snapshot     = true
-  auto_minor_version_upgrade = true
-  apply_immediately       = true //true in prod
+  db_subnet_group_name         = aws_db_subnet_group.this[each.key].name
+  vpc_security_group_ids       = [aws_security_group.db[each.key].id]
+  publicly_accessible          = each.value.publicly_accessible
+  deletion_protection          = false
+  skip_final_snapshot          = true
+  auto_minor_version_upgrade   = true
+  apply_immediately            = true //true in prod
   performance_insights_enabled = true
-  parameter_group_name    = aws_db_parameter_group.pg[each.key].name
-  maintenance_window      = "Mon:18:00-Mon:19:00"
-  backup_window           = "19:00-20:00"
+  parameter_group_name         = aws_db_parameter_group.pg[each.key].name
+  maintenance_window           = "Mon:18:00-Mon:19:00"
+  backup_window                = "19:00-20:00"
 
   # RDS-managed secret 
-  manage_master_user_password   = true // let RDS manage the secret in Secrets Manager to prevent password mismatch and rotation issue ; prevent expose password in tfstate
+  manage_master_user_password   = true                              // let RDS manage the secret in Secrets Manager to prevent password mismatch and rotation issue ; prevent expose password in tfstate
   master_user_secret_kms_key_id = var.master_user_secret_kms_key_id // null for default AWS-managed key
-  tags = merge(var.tags, { Name = each.value.db_identifier })
+  tags                          = merge(var.tags, { Name = each.value.db_identifier })
 }
 
 
